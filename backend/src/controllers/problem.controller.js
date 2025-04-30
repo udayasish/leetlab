@@ -5,7 +5,7 @@ import {
   submitBatch,
 } from "../libs/judge0.lib.js";
 
-export const createProblem = async () => {
+export const createProblem = async (req, res) => {
   //Going to get all the data from the request body
   const {
     title,
@@ -49,6 +49,30 @@ export const createProblem = async () => {
     const tokens = submissionResult.map(({ res }) => res.token);
 
     const results = await pollBatchResults(tokens);
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status_id !== 3) {
+        return res
+          .status(500)
+          .json({ error: `Testcase ${i + 1} failed for language ${language}` });
+      }
+    }
+
+    const newProblem = await db.problem.create({
+      title,
+      description,
+      difficulty,
+      tags,
+      examples,
+      constraints,
+      testcases,
+      codeSnippets,
+      referenceSolutions,
+      userId: req.user.id,
+    });
+
+    return res.status(201).json(newProblem);
   }
   //Loop through each reference solution for different languages
 };
